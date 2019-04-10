@@ -2,7 +2,7 @@
 dataset
  https://raw.githubusercontent.com/ankane/movielens.sql/master/movielens.sql 
  
-##The why?
+## The why?
 
 
  1.  For each year and month , print the count of movies having rating greater than equal to 4
@@ -12,10 +12,10 @@ dataset
  3 . for each month, genre - create a new column that has comma separated list of movie
 
 #-----------------------------------------for kafka task----------------------------------------
-##location 
+## location 
 C:\soft\kafka_2.12-2.2.0\kafka_2.12-2.2.0\bin\windowskafka-server-start
 
-##Step 1 
+## Step 1 
 
 Start zookeeper 
 
@@ -25,11 +25,11 @@ Open command prompt and type zkserver
 
 
 
-###to start server
+### to start server
 
 .\bin\windows\kafka-server-start.bat .\config\server.properties
 
-##Create topics 
+## Create topics 
 
 kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic genres
 kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic genres_movies
@@ -47,14 +47,14 @@ kafka-console-producer.bat --broker-list localhost:9092 --topic movies < G:\proj
 kafka-console-producer.bat --broker-list localhost:9092 --topic movies < G:\project\spark\occupations.csv
 kafka-console-producer.bat --broker-list localhost:9092 --topic movies < G:\project\spark\ratings.csv
 kafka-console-producer.bat --broker-list localhost:9092 --topic movies < G:\project\spark\users.csv
-
-##The why?
+ 
+## The why?
 
 1. Write a spark application to read the Kafka topics(movie lens dataset) and print them in Console
 5. Read the movie lens dataset in spark, write a spark application to get the Maximum Rating of each genre and find which genre is most rated by the users?
 
 
-##Schema
+## Schema
 
 
 CREATE TABLE occupations (

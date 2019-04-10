@@ -14,6 +14,7 @@ object Query3 extends App with ParquetUtils {
   /*
    * Query 3 .  for each month, genre - create a new column that has comma separated list of movies
    */
+  System.setProperty("hadoop.home.dir","C:\\hadoop" );
   val conf = new SparkConf().setMaster("local[2]").setAppName("Movie-App")
   val sc = new SparkContext(conf)
   val sqlContext = new SQLContext(sc)
@@ -21,7 +22,7 @@ object Query3 extends App with ParquetUtils {
   val parquetfilespath = "G:\\project\\spark\\movie_app\\src\\main\\resources\\"
 
   val genres = "genres"
-  val genres_movies = "genres_movies"
+  val genres_movies = "genresmovies"
   val movies = "movies"
   val occupations = "occupations"
   val ratings = "ratings"

@@ -25,7 +25,7 @@ import org.apache.spark.sql.DataFrame
  *Write a spark application to read the Kafka topics(movie lens dataset) and print them in Console
  */
 object Query1 extends App {
-  val conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount")
+  val conf = new SparkConf().setMaster("local[2]").setAppName("movie-app")
   val ssc = new StreamingContext(conf, Seconds(1))
 
   val kafkaParams = Map[String, Object](
@@ -36,7 +36,7 @@ object Query1 extends App {
     "auto.offset.reset" -> "latest",
     "enable.auto.commit" -> (false: java.lang.Boolean))
 
-  val topics = Array("genres", "genres_movies", "movies", "occupations", "ratings", "users")
+  val topics = Array("genres", "genresmovies", "movies", "occupations", "ratings", "users")
   val stream = KafkaUtils.createDirectStream[String, String](
     ssc,
     PreferConsistent,

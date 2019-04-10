@@ -8,13 +8,14 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.functions.split
 import org.apache.spark.sql.functions.count
+import org.apache.spark.sql.functions.first
 
 object Query2 extends App with ParquetUtils { /*
    * Query 2.  For each year and month , print the count of movies based on Genre having rating greater 
    * than equal to 4 
    * Query 3. Print top-5 movies based on the rating by Students ( in occupation )
    */
-
+  System.setProperty("hadoop.home.dir", "C:\\hadoop");
   val conf = new SparkConf().setMaster("local[2]").setAppName("Movie-App")
   val sc = new SparkContext(conf)
   val sqlContext = new SQLContext(sc)
@@ -42,7 +43,7 @@ object Query2 extends App with ParquetUtils { /*
     .where(col("occupations_ids") === lit(19))
 
   val ratings_movies = df_ratings.join(df_movies,
-    df_ratings("movie_id") === df_movies("movie_ids"))
+    df_ratings("movie_id") === df_movies("movies_ids"))
     .withColumn("year", split(col("release_date"), "-").getItem(0))
     .withColumn("month", split(col("release_date"), "-").getItem(1))
 
@@ -51,9 +52,9 @@ object Query2 extends App with ParquetUtils { /*
 
   val df_output = df.groupBy(col("year"), col("month"))
     .agg(
-      col("name") as "name",
+      first(col("name")) as "name",
       count(col("rating")) as "count")
-    .orderBy(col("rating").desc).limit(5)
-
+    .orderBy(col("count").desc).limit(5)
+  
   writeToParquet(df_output, parquetfilespath + "query2")
 }

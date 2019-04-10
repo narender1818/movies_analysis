@@ -15,6 +15,7 @@ object Query1 extends App with ParquetUtils {
    * Query 1.  For each year and month , print the count of 
    * movies having rating greater than equal to 4
    */
+  System.setProperty("hadoop.home.dir","C:\\hadoop" );
   val conf = new SparkConf().setMaster("local[2]").setAppName("Movie-App")
   val sc = new SparkContext(conf)
   val sqlContext = new SQLContext(sc)
@@ -30,11 +31,12 @@ object Query1 extends App with ParquetUtils {
 
   val df_movies = readFromParquet(sqlContext, parquetfilespath + movies)
   val df_ratings = readFromParquet(sqlContext, parquetfilespath + ratings).where(col("rating") >= lit(4))
-  val df_join = df_ratings.join(df_movies)
+  val df_join = df_ratings.join(df_movies,df_ratings("movie_id") === df_movies("id"))
     .withColumn("year", split(col("release_date"), "-").getItem(0))
     .withColumn("month", split(col("release_date"), "-").getItem(1))
     
-  val df_output = df_join.groupBy(col("year"), col("month")).agg(count(col("rating")))
+  val df_output = df_join.groupBy(col("year"), col("month")).agg(count(col("rating")) as "rating")
   
+
   writeToParquet(df_output, parquetfilespath+"query1")
 }

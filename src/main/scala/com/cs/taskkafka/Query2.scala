@@ -1,68 +1,70 @@
 package com.cs.taskkafka
 
-import org.apache.spark.SparkContext._
-import org.apache.spark.{ SparkConf, SparkContext }
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
-import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
-import org.apache.spark.streaming.Seconds
-import org.apache.spark.streaming.StreamingContext
-import org.apache.spark.streaming.kafka010.KafkaUtils
-import org.apache.spark.streaming.kafka010.OffsetRange
-import org.apache.spark.streaming.kafka010.HasOffsetRanges
-import org.apache.spark.TaskContext
-import java.net.InetAddress
+import com.cs.utils.ParquetUtils
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.types.DoubleType
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.types.StructField
-import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.DataFrame
-import com.cs.utils.SchemaUtils
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.lit
+import org.apache.spark.sql.functions.split
+import org.apache.spark.sql.functions.count
+import org.apache.spark.sql.functions.{ array, collect_list }
+import org.apache.spark.sql.functions._
+
 /*
  * . Read the movie lens dataset in spark, write a spark application 
  * to get the Maximum Rating of each genre and find which genre is most rated by the users?
 
  */
-object Query2 extends App  {
-  val conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount")
-  val ssc = new StreamingContext(conf, Seconds(1))
+object Query2 extends App with ParquetUtils {
+  System.setProperty("hadoop.home.dir", "C:\\hadoop");
+  val conf = new SparkConf().setMaster("local[2]").setAppName("Movie-App")
+  val sc = new SparkContext(conf)
+  val sqlContext = new SQLContext(sc)
 
-  val kafkaParams = Map[String, Object](
-    "bootstrap.servers" -> "localhost:9092",
-    "key.deserializer" -> classOf[StringDeserializer],
-    "value.deserializer" -> classOf[StringDeserializer],
-    "group.id" -> "test-consumer-group",
-    "auto.offset.reset" -> "latest",
-    "enable.auto.commit" -> (false: java.lang.Boolean))
+  val parquetfilespath = "G:\\project\\spark\\movie_app\\src\\main\\resources\\"
 
-  val topics = Array("genres", "genres_movies", "movies", "occupations", "ratings", "users")
-  val stream = KafkaUtils.createDirectStream[String, String](
-    ssc,
-    PreferConsistent,
-    Subscribe[String, String](topics, kafkaParams))
+  val genres = "genres"
+  val genres_movies = "genresmovies"
+  val movies = "movies"
+  val occupations = "occupations"
+  val ratings = "ratings"
+  val users = "users"
 
-  stream.map(record => (record.key, record.value))
+  val df_movies = readFromParquet(sqlContext, parquetfilespath + movies)
+    .withColumnRenamed("id", "movies_ids")
+  val df_ratings = readFromParquet(sqlContext, parquetfilespath + ratings)
+  val df_occupations = readFromParquet(sqlContext, parquetfilespath + occupations)
+    .withColumnRenamed("id", "occupations_ids")
+  val df_users = readFromParquet(sqlContext, parquetfilespath + users)
 
-  var df: DataFrame = null
+  // read the occupations student data only i.e 19,Student
 
-  stream.foreachRDD(rdd =>
-    if (!rdd.isEmpty()) {
-      val sqlContext = SQLContext.getOrCreate(rdd.sparkContext)
-      import sqlContext.implicits._
+  val users_occupations = df_users
+    .join(df_occupations, df_users("occupation_id") === df_occupations("occupations_ids"))
+    .where(col("occupations_ids") === lit(19))
 
-      val topicValueStrings = rdd.map(record => {
-        Row.fromSeq(record.value().split(",").toSeq)
-      })
-      val occupation = StructType(StructField("id", StringType, true) ::
-        StructField("name", StringType, true) :: Nil)
-        
-      df = sqlContext.createDataFrame(topicValueStrings, occupation)
-    })
+  val ratings_movies = df_ratings.join(df_movies,
+    df_ratings("movie_id") === df_movies("movies_ids"))
+    .withColumn("year", split(col("release_date"), "-").getItem(0))
+    .withColumn("month", split(col("release_date"), "-").getItem(1))
 
-  df.show()
-  ssc.start()
-  ssc.awaitTermination()
+  val df_rate = ratings_movies.join(users_occupations,
+    ratings_movies("user_id") === users_occupations("id"))
+  //val title = collect_list(col("title")).alias("title")
+
+  val df_genres_movies = readFromParquet(sqlContext, parquetfilespath + genres_movies)
+
+  val genres_moviesjoin = df_movies
+    .join(df_genres_movies, df_movies("movies_ids") === df_genres_movies("movie_id"))
+    .withColumnRenamed("movie_id", "movie_id_1")
+  val df = df_rate
+    .join(genres_moviesjoin, df_rate("movies_ids") === genres_moviesjoin("movie_id_1"))
+
+  val df_output = df.groupBy(col("movie_id_1"), col("genre_id"))
+    .agg(
+      first(col("user_id")) as "user_id",
+      max(col("rating")) as "maxrating").orderBy(col("user_id").desc)
+
+  println(df_output.show(200))
 }

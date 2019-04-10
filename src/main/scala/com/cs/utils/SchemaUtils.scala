@@ -5,6 +5,9 @@ import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.DateType
 import org.apache.spark.sql.types.StringType
+/*
+ * This is used to create the schema 
+ */
 
 object SchemaUtils {
   //  CREATE TABLE occupations (

@@ -5,7 +5,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.DataFrame
-
+/*
+ * This contain various reusable methods for parquet data conversation  
+ */
 trait ParquetUtils {
 
   def readTextFile(sqlContext: SQLContext,path: String, schema: StructType, delimiter: String): DataFrame = {
